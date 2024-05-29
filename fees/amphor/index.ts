@@ -7,9 +7,8 @@ import { CHAIN } from "../../helpers/chains";
 import { ETHEREUM } from "../../helpers/chains";
 import { getBlock } from "../../helpers/getBlock";
 
-const AmphorILHedgedUSDC_contractAddress: string = '0x3b022EdECD65b63288704a6fa33A8B9185b5096b';
-const AmphorILHedgedWSTETH_contractAddress: string = '0x2791EB5807D69Fe10C02eED6B4DC12baC0701744';
-const AmphorILHedgedWBTC_contractAddress: string = '0xC4A324fDF8a2495776B4d6cA46599B5a52f96489';
+
+const AmphorILHedgedWSTETH_contractAddress: string = '0xcDC51F2B0e5F0906f2fd5f557de49D99c34Df54e';
 
 const contractAbi: ethers.InterfaceAbi = [
     {
@@ -51,9 +50,7 @@ const contractAbi: ethers.InterfaceAbi = [
     },
 ]
 
-const AmphorILHedgedUSDC_contract: ethers.Contract = new ethers.Contract(AmphorILHedgedUSDC_contractAddress, contractAbi);
 const AmphorILHedgedWSTETH_contract: ethers.Contract = new ethers.Contract(AmphorILHedgedWSTETH_contractAddress, contractAbi);
-const AmphorILHedgedWBTC_contract: ethers.Contract = new ethers.Contract(AmphorILHedgedWBTC_contractAddress, contractAbi);
 
 const methodology = {
     UserFees: "Include performance fees.",
@@ -74,26 +71,11 @@ const data = async (timestamp: number): Promise<FetchResultFees> => {
     const fromTimestamp = timestamp - 60 * 60 * 24;
     const toBlock = await getBlock(toTimestamp, CHAIN.ETHEREUM, {});
 
-    const eventFilterUSDC: EventFilter = {
-        address: AmphorILHedgedUSDC_contractAddress,
-        topics: [ethers.id('EpochEnd(uint256,uint256,uint256,uint256,uint256)')]
-    };
+
     const eventFilterWSTETH: EventFilter = {
         address: AmphorILHedgedWSTETH_contractAddress,
         topics: [ethers.id('EpochEnd(uint256,uint256,uint256,uint256,uint256)')]
     };
-    const eventFilterWBTC: EventFilter = {
-        address: AmphorILHedgedWBTC_contractAddress,
-        topics: [ethers.id('EpochEnd(uint256,uint256,uint256,uint256,uint256)')]
-    };
-
-    const eventsUSDC = (await sdk.getEventLogs({
-        target: AmphorILHedgedUSDC_contractAddress,
-        topics: eventFilterUSDC.topics as string[],
-        fromBlock: 18299242,
-        toBlock: toBlock,
-        chain: CHAIN.ETHEREUM,
-    })) as ethers.Log[];
 
     const eventsWSTETH = (await sdk.getEventLogs({
         target: AmphorILHedgedWSTETH_contractAddress,
@@ -103,38 +85,18 @@ const data = async (timestamp: number): Promise<FetchResultFees> => {
         chain: CHAIN.ETHEREUM,
     })) as ethers.Log[];
 
-    const eventsWBTC = (await sdk.getEventLogs({
-        target: AmphorILHedgedWBTC_contractAddress,
-        topics: eventFilterWBTC.topics as string[],
-        fromBlock: 18535914,
-        toBlock: toBlock,
-        chain: CHAIN.ETHEREUM,
-    })) as ethers.Log[];
 
-    let totalRevenueUSDC = BigInt(0);
-    let totalFeesUSDC = BigInt(0);
+
     let totalRevenueWSTETH = BigInt(0);
     let totalFeesWSTETH = BigInt(0);
-    let totalRevenueWBTC = BigInt(0);
-    let totalFeesWBTC = BigInt(0);
 
-    let dailyFeesUSDC = BigInt(0);
+
+
     let dailyFeesWSTETH = BigInt(0);
-    let dailyFeesWBTC = BigInt(0);
-    let dailyRevenueUSDC = BigInt(0);
     let dailyRevenueWSTETH = BigInt(0);
-    let dailyRevenueWBTC = BigInt(0);
 
 
-    eventsUSDC.forEach(res => {
-        const event = AmphorILHedgedUSDC_contract.interface.parseLog(res as any);
-        totalRevenueUSDC += BigInt(event!.args.returnedAssets) - BigInt(event!.args.lastSavedBalance)
-        totalFeesUSDC += BigInt(event!.args.fees)
-        if (event!.args.timestamp > fromTimestamp && event!.args.timestamp < toTimestamp) {
-            dailyFeesUSDC += BigInt(event!.args.fees)
-            dailyRevenueUSDC = BigInt(event!.args.returnedAssets) - BigInt(event!.args.lastSavedBalance)
-        }
-    });
+
 
     eventsWSTETH.forEach(res => {
         const event = AmphorILHedgedWSTETH_contract.interface.parseLog(res as any);
@@ -146,41 +108,22 @@ const data = async (timestamp: number): Promise<FetchResultFees> => {
         }
     });
 
-    eventsWBTC.forEach(res => {
-        const event = AmphorILHedgedWBTC_contract.interface.parseLog(res as any);
-        totalRevenueWBTC = totalRevenueWBTC + BigInt(event!.args.returnedAssets) - BigInt(event!.args.lastSavedBalance)
-        totalFeesWBTC = totalFeesWBTC + BigInt(event!.args.fees)
-        if (event!.args.timestamp > fromTimestamp && event!.args.timestamp < toTimestamp) {
-            dailyFeesWBTC += BigInt(event!.args.fees)
-            dailyRevenueWBTC = BigInt(event!.args.returnedAssets) - BigInt(event!.args.lastSavedBalance)
-        }
-    });
 
     const TOKENS = {
-        USDC: ADDRESSES.ethereum.USDC,
-        WSTETH: ADDRESSES.ethereum.WSTETH,
-        WBTC: ADDRESSES.ethereum.WBTC,
+        amprETH: ADDRESSES.ethereum.amprETH,
     }
     const totalFees = new sdk.Balances({ chain: CHAIN.ETHEREUM, timestamp: toTimestamp });
     const totalRevenue = new sdk.Balances({ chain: CHAIN.ETHEREUM, timestamp: toTimestamp });
     const dailyFees = new sdk.Balances({ chain: CHAIN.ETHEREUM, timestamp: toTimestamp });
     const dailyRevenue = new sdk.Balances({ chain: CHAIN.ETHEREUM, timestamp: toTimestamp });
 
-    totalFees.add(TOKENS.USDC, totalFeesUSDC.toString());
-    totalFees.add(TOKENS.WSTETH, totalFeesWSTETH.toString());
-    totalFees.add(TOKENS.WBTC, totalFeesWBTC.toString());
+    totalFees.add(TOKENS.amprETH, totalFeesWSTETH.toString());
 
-    totalRevenue.add(TOKENS.USDC, totalRevenueUSDC.toString());
-    totalRevenue.add(TOKENS.WSTETH, totalRevenueWSTETH.toString());
-    totalRevenue.add(TOKENS.WBTC, totalRevenueWBTC.toString());
+    totalRevenue.add(TOKENS.amprETH, totalRevenueWSTETH.toString());
 
-    dailyFees.add(TOKENS.USDC, dailyFeesUSDC.toString());
-    dailyFees.add(TOKENS.WSTETH, dailyFeesWSTETH.toString());
-    dailyFees.add(TOKENS.WBTC, dailyFeesWBTC.toString());
+    dailyFees.add(TOKENS.amprETH, dailyFeesWSTETH.toString());
 
-    dailyRevenue.add(TOKENS.USDC, dailyRevenueUSDC.toString());
-    dailyRevenue.add(TOKENS.WSTETH, dailyRevenueWSTETH.toString());
-    dailyRevenue.add(TOKENS.WBTC, dailyRevenueWBTC.toString());
+    dailyRevenue.add(TOKENS.amprETH, dailyRevenueWSTETH.toString());
 
 
     const totalFeesNumber = Number(await totalFees.getUSDValue()).toFixed(0);
@@ -201,7 +144,7 @@ const adapter: Adapter = {
     adapter: {
         [ETHEREUM]: {
             fetch: data,
-            start: 1696611600,
+            start: 1713277007,
             meta: {
                 methodology
             }
