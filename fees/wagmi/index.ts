@@ -12,13 +12,13 @@ const methodology = {
 
 const adapter: SimpleAdapter = {
   adapter: {
-    [CHAIN.ERA]: {
-      fetch: fetchFee(CHAIN.ERA),
-      start: 1681257600,
-      meta: {
-        methodology,
-      },
-    },
+    // [CHAIN.ERA]: {
+    //   fetch: fetchFee(CHAIN.ERA),
+    //   start: 1681257600,
+    //   meta: {
+    //     methodology,
+    //   },
+    // },
     [CHAIN.FANTOM]: {
       fetch: fetchFee(CHAIN.FANTOM),
       start: 1681257600,
@@ -26,13 +26,13 @@ const adapter: SimpleAdapter = {
         methodology,
       },
     },
-    // [CHAIN.KAVA]: {
-    //   fetch: fetchFee(CHAIN.KAVA),
-    //   start: 1694476800,
-    //   meta: {
-    //     methodology,
-    //   },
-    // },
+    [CHAIN.KAVA]: {
+      fetch: fetchFee(CHAIN.KAVA),
+      start: 1694476800,
+      meta: {
+        methodology,
+      },
+    },
     [CHAIN.ETHEREUM]: {
       fetch: fetchFee(CHAIN.ETHEREUM),
       start: 18240112,
